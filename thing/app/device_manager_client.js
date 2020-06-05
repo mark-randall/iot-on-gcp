@@ -4,12 +4,11 @@ const fs = require('fs');
 const deviceManagerClient = new iot.v1.DeviceManagerClient();
 
 // Register device
-function create(deviceId) {
+async function create(deviceId) {
 
     const projectId = 'robots-277919'
-    const deviceId = deviceId
     const registryId = 'Robots';
-    const privateKeyFile = '../rsa_cert.pem';
+    const privateKeyFile = 'rsa_cert.pem';
     const region = 'us-central1';
 
     const device = {
@@ -37,3 +36,5 @@ function create(deviceId) {
         console.error('Could not create device', err);
     }
 }
+
+exports.create = create

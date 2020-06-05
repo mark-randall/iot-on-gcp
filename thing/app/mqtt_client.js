@@ -46,7 +46,7 @@ const connectionArguments = (deviceId) => {
     const registryId = `Robots`;
     const region = `us-central1`;
     const algorithm = `RS256`;
-    const privateKeyFile = `../rsa_private.pem`;
+    const privateKeyFile = `rsa_private.pem`;
     const mqttBridgeHostname = `mqtt.googleapis.com`;
     const mqttBridgePort = 8883;
 
@@ -108,12 +108,16 @@ function connect(deviceId) {
         console.log('MQTT ' + topic + ' message received')
 
         let topicString = Buffer.from(message, 'base64').toString('ascii');
-        let topicState = JSON.parse(topicString)
+        if (topicString.length > 0) {
+            let topicState = JSON.parse(topicString)
 
-        if (topic === '/devices/' + deviceId + '/config') {
-            updateStateForConfig(topicState)
+            if (topic === '/devices/' + deviceId + '/config') {
+                updateStateForConfig(topicState)
+            } else {
+                handleCommand(topicString, topicState)
+            }
         } else {
-            handleCommand(topicString, topicState)
+            console.log('Message is empty')
         }
     });
 }
