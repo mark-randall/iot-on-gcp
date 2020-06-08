@@ -3,14 +3,14 @@
 const exec = require('child_process').exec;
 const { v4: uuidv4 } = require('uuid');
 
-exports.handler = function(request, response, admin) {
+exports.handler = function(request, response, serviceLocator) {
 
     switch (request.method.toLowerCase()) {
         case 'post':
-            create(request,response, admin)
+            create(request,response, serviceLocator)
             break;
         case 'delete':
-            destroy(request,response, admin)
+            destroy(request,response, serviceLocator)
             break;
         default:
             response.status(405).send({'success': false, 'result': request.method + ' not supported'});
@@ -19,10 +19,10 @@ exports.handler = function(request, response, admin) {
 };
 
 // HTTP POST
-function create(request, response, admin) {
+function create(request, response, serviceLocator) {
 
     // Download GCP Deployment Manager template from GCS
-    let bucket = admin.storage().bucket();
+    let bucket = serviceLocator.admin.storage().bucket();
     bucket.file('robot_deployment_template.jinja').download({ destination: '/tmp/robot_deployment_template.jinja' })
     .then(() => {
 
@@ -49,6 +49,8 @@ function create(request, response, admin) {
                 execFailureResponse(response, err, stderr)
             }
         });
+
+        return true
     })
     .catch((err) => {
         console.error('Unable to download file from bucket')

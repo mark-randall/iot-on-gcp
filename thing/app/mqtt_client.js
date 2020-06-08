@@ -63,7 +63,8 @@ const connectionArguments = (deviceId) => {
         username: 'unused', // IoT Core doesn't use this MQTT field
         password: password,
         protocol: 'mqtts',
-        secureProtocol: 'TLSv1_2_method'
+        secureProtocol: 'TLSv1_2_method',
+        reconnectPeriod: 1000 * 3
     }
 }
 
@@ -77,8 +78,8 @@ const connectionArguments = (deviceId) => {
 // * Calls updateStateForConfig for config topic messages
 // * Calls updateStateForCommand for commands/# topic messages
 //
-function connect(deviceId) {
-    this.deviceId = deviceId
+function connect(id) {
+    deviceId = id
 
     // Connect
     mqttClient = mqtt.connect(connectionArguments(deviceId));
@@ -88,7 +89,7 @@ function connect(deviceId) {
     mqttClient.subscribe('/devices/' + deviceId + '/commands/#', {qos: 0});
 
     mqttClient.on('connect', success => {
-        if (!success) {
+        if (success === false) {
             console.log('MQTT client not connected');
         } else { 
             console.log('MQTT client connected')
@@ -97,7 +98,6 @@ function connect(deviceId) {
 
     mqttClient.on('close', () => {
         console.log('MQTT client close');
-        shouldBackoff = true;
     });
 
     mqttClient.on('error', err => {
@@ -131,17 +131,17 @@ function getState() {
 // Modify device state
 function patchState(patch) {
     let message = Object.assign(state, patch);
-    publishMessage('/devices/' + this.deviceId + '/state', JSON.stringify(message))
+    publishMessage('/devices/' + deviceId + '/state', JSON.stringify(message))
 }
 
 // Update device state
 function putState(message) {
-    publishMessage('/devices/' + this.deviceId + '/state', JSON.stringify(message))
+    publishMessage('/devices/' + deviceId + '/state', JSON.stringify(message))
 }
 
 // Publish a message @ topic to MQTT client
 function publishMessage(topic, message) {
-    console.log('MQTT publishing message:', message);
+    console.log(`MQTT publishing to ${topic}: ${message}`);
 
     mqttClient.publish(topic, message, {qos: 1}, err => {
         if (err) {
