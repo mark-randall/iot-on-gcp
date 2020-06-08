@@ -6,7 +6,7 @@ const admin = require('firebase-admin')
 
 const httpsDevice = require('./https/device');
 const pubsubDeviceState = require('./pubsub/deviceState');
-const firestoreDevice = require('./firestore/device');
+const firestoreDeviceConfig = require('./firestore/deviceConfig');
 
 admin.initializeApp();
 
@@ -18,7 +18,7 @@ let serviceLocator = {
 // HTTPS ///////////////////////
 
 // Accepts POST and DELETE to create and delete a IoT Core device
-exports.robots = functions.https.onRequest((request, response) => {
+exports.device = functions.https.onRequest((request, response) => {
     httpsDevice.handler(request, response, serviceLocator)
 });
 
@@ -32,13 +32,8 @@ exports.pubsub_deviceStateUpdate = functions.pubsub.topic('robot-iot-state').onP
 
 // FIRESTORE ///////////////////////
 
-// Document represent an IoT device
-// Updates Devices config based on docs config property
-exports.firestore_deviceUpdate = functions.firestore.document('devices/{deviceId}').onUpdate(async (change, context) => {
-    return firestoreDevice.updateHandler(change, context, serviceLocator);
-});
-
-// Handles device document creation
-exports.firestore_deviceCreate = functions.firestore.document('devices/{deviceId}').onCreate(async (change, context) => {
-    return firestoreDevice.updateHandler(change, context, serviceLocator);
+// Update and create of doc
+// Updates of IoT Core devices config
+exports.firestore_deviceConfigWrite = functions.firestore.document('device_configs/{deviceId}').onWrite(async (change, context) => {
+    return firestoreDeviceConfig.writeHandler(change, context, serviceLocator);
 });

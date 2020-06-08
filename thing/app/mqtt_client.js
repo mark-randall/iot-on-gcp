@@ -64,7 +64,8 @@ const connectionArguments = (deviceId) => {
         password: password,
         protocol: 'mqtts',
         secureProtocol: 'TLSv1_2_method',
-        reconnectPeriod: 1000 * 3
+        reconnectPeriod: 1000 * 3,
+        clean: false
     }
 }
 
