@@ -8,19 +8,28 @@
 
 import Combine
 import FirebaseFirestore
+import FirebaseFunctions
+
+enum ThingCommand: String {
+    case start
+    case stop
+}
 
 protocol ThingRepository {
     
-    func fetchThing(forId id: String) -> AnyPublisher<Result<Thing, Error>, Never>
+    func fetch(forId id: String) -> AnyPublisher<Result<Thing, Error>, Never>
+    
+    func sendCommand(forId id: String, command: ThingCommand) -> Future<Result<Bool, Error>, Never>
 }
 
 final class FirebaseThingRepository: ThingRepository {
     
-    private let db = Firestore.firestore()
+    private lazy var db = Firestore.firestore()
+    private lazy var functions = Functions.functions()
     
-    func fetchThing(forId id: String) -> AnyPublisher<Result<Thing, Error>, Never> {
+    func fetch(forId id: String) -> AnyPublisher<Result<Thing, Error>, Never> {
                 
-        return db.collection("devices").document(id)
+        db.collection("devices").document(id)
         .snapshotListenerPublisher()
         .handleEvents(receiveOutput: { result in
             print(result)
@@ -39,6 +48,23 @@ final class FirebaseThingRepository: ThingRepository {
             }
         }.eraseToAnyPublisher()
     }
+    
+    func sendCommand(forId id: String, command: ThingCommand) -> Future<Result<Bool, Error>, Never> {
+        
+        return Future { [weak self] promise in
+        
+            guard let self = self else { preconditionFailure(); }
+            
+            self.functions.httpsCallable("deviceCommand").call(["id": id, "command": command.rawValue]) { result, error in
+                
+                if let error = error {
+                    promise(.success(.failure(error)))
+                } else if result != nil {
+                    promise(.success(.success(true)))
+                } else {
+                    preconditionFailure()
+                }
+            }
+        }
+    }
 }
-
-

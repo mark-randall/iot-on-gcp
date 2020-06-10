@@ -12,7 +12,7 @@ import SwiftUI
 
 struct StatusAttributeView: View {
     
-    var data: StatusAttributeData
+    var data: StatusViewModelData.StatusAttributeData
     
     var body: some View {
         HStack(alignment: .center, spacing: 20) {
@@ -31,23 +31,28 @@ struct StatusView: View {
     
     var body: some View {
         NavigationView {
-            VStack {
-                viewModel.state.map { state in
-                    VStack {
-                        Spacer(minLength: 100)
-                        Button(action: { self.viewModel.apply(.runningStatusButtonTapped) }) {
-                            Text(state.runningStatus.label)
-                        }
-                        Spacer(minLength: 100)
-                        Divider()
-                        List {
-                            ForEach(state.attributes, content: StatusAttributeView.init(data:))
-                        }
-                    }
+            ZStack {
+                VStack {
+                   viewModel.state.map { state in
+                       VStack {
+                           Spacer(minLength: 100)
+                           Button(action: { self.viewModel.apply(.actionButtonTapped) }) {
+                               Text(state.actionButtonStatus.label)
+                           }
+                           .disabled(!state.actionButtonStatus.isEnabled)
+                           Spacer(minLength: 100)
+                           Divider()
+                           List {
+                               ForEach(state.attributes, content: StatusAttributeView.init(data:))
+                           }
+                       }
+                   }
                 }
+                ActivityIndicatorOverlay(isVisible: self.$viewModel.isLoading)
             }
-            .navigationBarTitle(Text("IoT"), displayMode: .inline)
-            .sheet(item: $viewModel.sheetNavigation) { self.navigationItem($0) }
+            .navigationBarTitle(Text(viewModel.title), displayMode: .inline)
+            .sheet(item: $viewModel.sheetNavigation) { self.navigation(for: $0) }
+            .alert(item: $viewModel.alert) { self.alert(for: $0) }
         }
         .onAppear(perform: { self.viewModel.apply(.onAppear) })
     }
@@ -57,12 +62,17 @@ struct StatusView: View {
         UITableView.appearance().tableFooterView = UIView()
     }
 
-    // Return View for Navigation
-    private func navigationItem(_ navigation: Navigation) -> some View {
+    // Return View for Screen
+    private func navigation(for navigation: ScreenData) -> some View {
         switch navigation {
         case .auth:
             return AuthView()
         }
+    }
+    
+    // Return Alert for AlertData
+    private func alert(for item: AlertData) -> Alert {
+        Alert(title: Text(item.title ?? ""), message: Text(item.message))
     }
 }
 

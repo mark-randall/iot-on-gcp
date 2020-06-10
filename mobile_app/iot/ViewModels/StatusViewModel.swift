@@ -11,33 +11,52 @@ import Combine
 
 // MARK: - ViewModel State Data Types
 
-struct StatusAttributeData: Identifiable {
-    let id = UUID()
-    let label: String
-    let value: String
-}
-
-struct StatusRunningStatusData {
-    let label: String
-    var isEnabled: Bool = false
-}
-
+// State of ViewModel
 struct StatusViewModelData {
-    let title = "IoT"
-    var runningStatus: StatusRunningStatusData
+    
+    struct StatusAttributeData: Identifiable {
+        let id = UUID()
+        let label: String
+        let value: String
+    }
+
+    struct ActionButtonStatusData {
+        
+        enum Action: Equatable {
+            case start
+            case stop
+            case error(NSError)
+        }
+        
+        var action: Action
+        
+        var label: String {
+            switch action {
+            case .start: return "start"
+            case .stop: return "stop"
+            case .error: return "Error"
+            }
+        }
+        
+        var isEnabled: Bool {
+            switch action {
+            case .start: return true
+            case .stop: return true
+            case .error: return false
+            }
+        }
+    }
+    
+    var actionButtonStatus: ActionButtonStatusData
     var attributes: [StatusAttributeData] = []
 }
 
 // MARK: - ViewModel ViewEvents
 
+// Events which can be applied to ViewModel
 enum StatusViewEvent {
     case onAppear
-    case runningStatusButtonTapped
-}
-
-enum Navigation: String, Identifiable {
-    case auth
-    var id: String { self.rawValue }
+    case actionButtonTapped
 }
 
 // MARK: - ViewModel
@@ -58,8 +77,12 @@ final class StatusViewModel: StatusViewModelProtocol {
     
     // MARK: - State
     
+    let title = "IoT"
     @Published private(set) var state: StatusViewModelData? = nil
-    @Published var sheetNavigation: Navigation? = nil
+    
+    @Published var sheetNavigation: ScreenData? = nil
+    @Published var alert: AlertData? = nil
+    @Published var isLoading: Bool = true
     
     // MARK: - Private state
     
@@ -104,36 +127,34 @@ final class StatusViewModel: StatusViewModelProtocol {
         // 4. Assign to .state property
         let thingRepoSubscription = userRepository.fetchAuthState()
         .filter { $0 == .authenticated }.first()
-        .flatMap { _ in thingRepository.fetchThing(forId: "test") }
+        .flatMap { _ in thingRepository.fetch(forId: "test") }
         .map { result in
             
             switch result {
             case .failure(let error):
                 return StatusViewModelData(
-                   runningStatus: StatusRunningStatusData(label: "Error"),
-                   attributes: [
-                        StatusAttributeData(label: "Error:", value: (error as NSError).localizedDescription),
-                   ]
+                    actionButtonStatus: StatusViewModelData.ActionButtonStatusData(action: .error(error as NSError)),
+                    attributes: [
+                        StatusViewModelData.StatusAttributeData(label: "Error:", value: (error as NSError).localizedDescription),
+                    ]
                )
             case .success(let thing):
                 return StatusViewModelData(
-                    runningStatus: StatusRunningStatusData(label: (thing.state.running) ? "Stop" : "Start"),
+                    actionButtonStatus: StatusViewModelData.ActionButtonStatusData(action: (thing.state.running) ? .stop : .start),
                     attributes: [
-                        StatusAttributeData(label: "Mode:", value: thing.state.mode),
-                        StatusAttributeData(label: "Battery:", value: "\(thing.state.battery)")
+                        StatusViewModelData.StatusAttributeData(label: "Mode:", value: thing.state.mode),
+                        StatusViewModelData.StatusAttributeData(label: "Battery:", value: "\(thing.state.battery)")
                     ]
                 )
             }
         }
+        .handleEvents(receiveOutput: { [weak self] _ in
+            self?.isLoading = false
+        })
         .eraseToAnyPublisher()
         .assign(to: \.state, on: self)
         
         subscriptions.append(thingRepoSubscription)
-    }
-    
-    private func bind(_ userRepository: UserRepository, subscriptions: inout [AnyCancellable]) {
-        
-        
     }
     
     // MARK: - Handle view events
@@ -141,10 +162,39 @@ final class StatusViewModel: StatusViewModelProtocol {
     func apply(_ eventEvent: StatusViewEvent) {
         
         switch eventEvent {
+            
         case .onAppear:
             viewAppeared = true
-        case .runningStatusButtonTapped:
-            break;
+        
+        case .actionButtonTapped:
+            
+            // Validate internal state
+            guard let actionStatus = state?.actionButtonStatus else { assert(false); return }
+            assert(actionStatus.isEnabled)
+            
+            // Map actionStatus.action to ThingCommand
+            let repositoryAction: ThingCommand?
+            switch actionStatus.action {
+            case .start: repositoryAction = .start
+            case .stop: repositoryAction = .stop
+            default: repositoryAction = nil
+            }
+            guard let thingAction = repositoryAction else { assert(false); return }
+            
+            isLoading = true
+            
+            let request = thingRepository.sendCommand(forId: "test", command: thingAction).sink(receiveValue: { [weak self] result in
+                
+                self?.isLoading = false
+                
+                switch result {
+                case .failure(let error):
+                    self?.alert = AlertData(error: error)
+                case .success:
+                    self?.alert = AlertData(success: "Command sent")
+                }
+            })
+            subscriptions.append(request)
         }
     }
 }
