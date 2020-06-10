@@ -27,7 +27,7 @@ exports.handler = async function(data, context, serviceLocator) {
     );
 
     // Convert Request data to base64
-    const binaryData = Buffer.from(data.command);
+    const binaryData = Buffer.from(JSON.stringify(data.command)).toString('base64');
 
     try {
 

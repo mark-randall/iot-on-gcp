@@ -11,7 +11,7 @@ let state = {
 	charging: false,
 	running: false,
 	battery: 0.5,
-    mode: 1,
+    mode: "1",
     firmware_version: '1.0.0'
 }
 
@@ -112,10 +112,10 @@ function connect(id) {
         if (topicString.length > 0) {
             let topicState = JSON.parse(topicString)
 
-            if (topic === '/devices/' + deviceId + '/config') {
-                updateStateForConfig(topicState)
+            if (topic === `/devices/${deviceId}/config`) {
+                // updateStateForConfig(topicState)
             } else {
-                handleCommand(topicString, topicState)
+                updateStateForCommand(topic, topicState)
             }
         } else {
             console.log('Message is empty')
@@ -157,10 +157,25 @@ function publishMessage(topic, message) {
 
 // Update state based on command messages received
 function updateStateForCommand(topic, message) {
-    if (topic === 'running_mode') {
-        console.log('MQTT TODO handle running_mode update')
+
+    if (topic === `/devices/${deviceId}/commands`) {
+        
+        if (message.type === 'running_state') {
+
+            if (message.value === 'start') {
+                state.running = true
+                putState(state)
+            } else if (message.value === 'stop') {
+                state.running = false
+                putState(state)
+            } else {
+                console.log(`MQTT command topic ${topic} message not properly formed. "value" value not recognized`)
+            }
+        } else {
+            console.log(`MQTT command topic ${topic} message not properly formed. "type" value not recognized`)
+        }
     } else {
-        console.error('MQTT command topic not supported')
+        console.log('MQTT command topic not supported')
     }
 }
 

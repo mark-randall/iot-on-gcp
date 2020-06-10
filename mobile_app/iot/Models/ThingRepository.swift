@@ -55,7 +55,12 @@ final class FirebaseThingRepository: ThingRepository {
         
             guard let self = self else { preconditionFailure(); }
             
-            self.functions.httpsCallable("deviceCommand").call(["id": id, "command": command.rawValue]) { result, error in
+            let commandData = [
+                "type": "running_state",
+                "value": command.rawValue
+            ]
+            
+            self.functions.httpsCallable("deviceCommand").call(["id": id, "command": commandData]) { result, error in
                 
                 if let error = error {
                     promise(.success(.failure(error)))
