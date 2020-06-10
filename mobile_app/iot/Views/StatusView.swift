@@ -12,12 +12,17 @@ import SwiftUI
 
 struct StatusAttributeView: View {
     
-    var data: StatusViewModelData.StatusAttributeData
+    let data: StatusViewModelData.StatusAttributeData
+    let editTapped: () -> Void
     
     var body: some View {
         HStack(alignment: .center, spacing: 20) {
             Text(data.label)
             Text(data.value)
+            Spacer()
+            if data.isEditable {
+                Button("Edit", action: editTapped)
+            }
         }
     }
 }
@@ -33,17 +38,21 @@ struct StatusView: View {
         NavigationView {
             ZStack {
                 VStack {
-                   viewModel.state.map { state in
-                       VStack {
-                           Spacer(minLength: 100)
-                           Button(action: { self.viewModel.apply(.actionButtonTapped) }) {
-                               Text(state.actionButtonStatus.label)
-                           }
-                           .disabled(!state.actionButtonStatus.isEnabled)
-                           Spacer(minLength: 100)
-                           Divider()
-                           List {
-                               ForEach(state.attributes, content: StatusAttributeView.init(data:))
+                    viewModel.state.map { state in
+                        VStack {
+                            Spacer(minLength: 100)
+                            Button(action: { self.viewModel.apply(.actionButtonTapped) }) {
+                                Text(state.actionButtonStatus.label)
+                            }
+                            .disabled(!state.actionButtonStatus.isEnabled)
+                            Spacer(minLength: 100)
+                            Divider()
+                            List {
+                                ForEach(state.attributes) { attributedData in
+                                    StatusAttributeView(data: attributedData) {
+                                        self.viewModel.apply(.attributedEditTapped(attributedData))
+                                    }
+                                }
                            }
                        }
                    }
@@ -62,11 +71,18 @@ struct StatusView: View {
         UITableView.appearance().tableFooterView = UIView()
     }
 
+    @State private var selected: String?
+    
     // Return View for Screen
-    private func navigation(for navigation: ScreenData) -> some View {
+    private func navigation(for navigation: ScreenData) -> AnyView {
+        
         switch navigation {
         case .auth:
-            return AuthView()
+            return AnyView(AuthView())
+        case .editAttribute(let attribute, let options):
+            return AnyView(SelectView(title: attribute.label, options: options, value: attribute.value) {
+                self.viewModel.apply(.attributeUpdated(attribute, newValue: $0))
+            })
         }
     }
     

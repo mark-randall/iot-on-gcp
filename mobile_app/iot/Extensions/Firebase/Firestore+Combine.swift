@@ -55,56 +55,6 @@ struct FirestoreDocumentPublisher: Combine.Publisher {
     }
 }
 
-// MARK: - FirestoreDocumentUpdatePublisher
-
-struct FirestoreDocumentUpdatePublisher: Combine.Publisher {
-    
-    typealias Output = Result<Bool, Error>
-    typealias Failure = Never
-    
-    let document: DocumentReference
-    let update: [AnyHashable: Any]
-    
-    func receive<S>(subscriber: S) where S : Subscriber, Failure == S.Failure, Output == S.Input {
-
-        document.updateData(update) { error in
-    
-            if let error = error {
-                _ = subscriber.receive(.failure(error))
-            } else {
-                _ = subscriber.receive(.success(true))
-            }
-    
-            _ = subscriber.receive(completion: .finished)
-        }
-    }
-}
-
-// MARK: - FirestoreDocumentSetPublisher
-
-struct FirestoreDocumentSetPublisher: Combine.Publisher {
-    
-    typealias Output = Result<Bool, Error>
-    typealias Failure = Never
-    
-    let document: DocumentReference
-    let set: [String: Any]
-    
-    func receive<S>(subscriber: S) where S : Subscriber, Failure == S.Failure, Output == S.Input {
-
-        document.setData(set) { error in
-    
-            if let error = error {
-                _ = subscriber.receive(.failure(error))
-            } else {
-                _ = subscriber.receive(.success(true))
-            }
-    
-            _ = subscriber.receive(completion: .finished)
-        }
-    }
-}
-
 // MARK: - FirebaseFirestore.Query
 
 extension FirebaseFirestore.Query {
@@ -120,13 +70,5 @@ extension FirebaseFirestore.DocumentReference {
 
     func snapshotListenerPublisher() -> FirestoreDocumentPublisher {
         FirestoreDocumentPublisher(document: self)
-    }
-    
-    func updatePublisher(_ update: [AnyHashable: Any]) -> FirestoreDocumentUpdatePublisher {
-        FirestoreDocumentUpdatePublisher(document: self, update: update)
-    }
-    
-    func setPublisher(_ set: [String: Any]) -> FirestoreDocumentSetPublisher {
-        FirestoreDocumentSetPublisher(document: self, set: set)
     }
 }

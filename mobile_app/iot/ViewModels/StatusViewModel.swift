@@ -15,9 +15,10 @@ import Combine
 struct StatusViewModelData {
     
     struct StatusAttributeData: Identifiable {
-        let id = UUID()
-        let label: String
+        let id: String
+        var label: String { "\(id.capitalized):" }
         let value: String
+        var isEditable: Bool = false
     }
 
     struct ActionButtonStatusData {
@@ -57,6 +58,8 @@ struct StatusViewModelData {
 enum StatusViewEvent {
     case onAppear
     case actionButtonTapped
+    case attributedEditTapped(StatusViewModelData.StatusAttributeData)
+    case attributeUpdated(StatusViewModelData.StatusAttributeData, newValue: String)
 }
 
 // MARK: - ViewModel
@@ -135,15 +138,15 @@ final class StatusViewModel: StatusViewModelProtocol {
                 return StatusViewModelData(
                     actionButtonStatus: StatusViewModelData.ActionButtonStatusData(action: .error(error as NSError)),
                     attributes: [
-                        StatusViewModelData.StatusAttributeData(label: "Error:", value: (error as NSError).localizedDescription),
+                        StatusViewModelData.StatusAttributeData(id: "error", value: (error as NSError).localizedDescription),
                     ]
                )
             case .success(let thing):
                 return StatusViewModelData(
                     actionButtonStatus: StatusViewModelData.ActionButtonStatusData(action: (thing.state.running) ? .stop : .start),
                     attributes: [
-                        StatusViewModelData.StatusAttributeData(label: "Mode:", value: thing.state.mode),
-                        StatusViewModelData.StatusAttributeData(label: "Battery:", value: "\(thing.state.battery)")
+                        StatusViewModelData.StatusAttributeData(id: "mode", value: thing.state.mode, isEditable: true),
+                        StatusViewModelData.StatusAttributeData(id: "battery", value: "\(thing.state.battery)")
                     ]
                 )
             }
@@ -169,7 +172,7 @@ final class StatusViewModel: StatusViewModelProtocol {
         case .actionButtonTapped:
             
             // Validate internal state
-            guard let actionStatus = state?.actionButtonStatus else { assert(false); return }
+            guard let actionStatus = state?.actionButtonStatus else { assertionFailure(); return }
             assert(actionStatus.isEnabled)
             
             // Map actionStatus.action to ThingCommand
@@ -179,12 +182,10 @@ final class StatusViewModel: StatusViewModelProtocol {
             case .stop: repositoryAction = .stop
             default: repositoryAction = nil
             }
-            guard let thingAction = repositoryAction else { assert(false); return }
+            guard let thingAction = repositoryAction else { assertionFailure(); return }
             
             isLoading = true
-            
             let request = thingRepository.sendCommand(forId: "test", command: thingAction).sink(receiveValue: { [weak self] result in
-                
                 self?.isLoading = false
                 
                 switch result {
@@ -195,6 +196,28 @@ final class StatusViewModel: StatusViewModelProtocol {
                 }
             })
             subscriptions.append(request)
+            
+        case .attributedEditTapped(let attribute):
+            sheetNavigation = .editAttribute(attribute, ["1", "2", "3"]) // TODO: pull real values
+            
+        case .attributeUpdated(let attribute, let newValue):
+            
+            sheetNavigation = nil
+            
+            guard attribute.id == "mode" else { assertionFailure(); return }
+            
+            isLoading = true
+            let update = thingRepository.updateMode(forId: "test", mode: newValue).sink(receiveValue: { [weak self] result in
+                self?.isLoading = false
+                
+                switch result {
+                case .failure(let error):
+                    self?.alert = AlertData(error: error)
+                case .success:
+                    self?.alert = AlertData(success: "Config update sents")
+                }
+            })
+            subscriptions.append(update)
         }
     }
 }

@@ -8,11 +8,13 @@
 
 import Foundation
 
-enum ScreenData: String, Identifiable {
+enum ScreenData: Identifiable {
     
     /// Firebase Auth UI screen
     /// Currently a ViewModel is not required for this screen
     case auth
     
-    var id: String { self.rawValue }
+    case editAttribute(StatusViewModelData.StatusAttributeData, [String])
+    
+    var id: String { "\(self)" }
 }

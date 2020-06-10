@@ -20,6 +20,8 @@ protocol ThingRepository {
     func fetch(forId id: String) -> AnyPublisher<Result<Thing, Error>, Never>
     
     func sendCommand(forId id: String, command: ThingCommand) -> Future<Result<Bool, Error>, Never>
+    
+    func updateMode(forId id: String, mode: String) -> Future<Result<Bool, Error>, Never>
 }
 
 final class FirebaseThingRepository: ThingRepository {
@@ -68,6 +70,25 @@ final class FirebaseThingRepository: ThingRepository {
                     promise(.success(.success(true)))
                 } else {
                     preconditionFailure()
+                }
+            }
+        }
+    }
+    
+    func updateMode(forId id: String, mode: String) -> Future<Result<Bool, Error>, Never> {
+        
+        return Future { [weak self] promise in
+        
+            guard let self = self else { preconditionFailure(); }
+            
+            let update = ["mode": mode]
+            self.db.collection("device_configs").document(id).updateData(update) { error in
+    
+                // TODO: should I wait for this completions
+                if let error = error {
+                    promise(.success(.failure(error)))
+                } else {
+                    promise(.success(.success(true)))
                 }
             }
         }
