@@ -5,6 +5,7 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin')
 
 const httpsDevice = require('./https/device');
+const httpsDeviceCommand = require('./https/deviceCommand');
 const pubsubDeviceState = require('./pubsub/deviceState');
 const firestoreDeviceConfig = require('./firestore/deviceConfig');
 
@@ -20,6 +21,12 @@ let serviceLocator = {
 // Accepts POST and DELETE to create and delete a IoT Core device
 exports.device = functions.https.onRequest((request, response) => {
     httpsDevice.handler(request, response, serviceLocator)
+});
+
+// App callable function
+// SEE: https://firebase.google.com/docs/functions/callable
+exports.deviceCommand = functions.https.onCall(async (data, context) => {
+    return httpsDeviceCommand.handler(data, context, serviceLocator)
 });
 
 // PUB/SUB ///////////////////////
