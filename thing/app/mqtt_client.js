@@ -2,11 +2,11 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const mqtt = require('mqtt');
 
-let mqttClient = null
-let deviceId = null
+let mqttClient
+let deviceId
 
-// Cached config
-let state = {
+// State of device on start up
+let defaultState = {
     docking: false,
 	charging: false,
 	running: false,
@@ -14,6 +14,14 @@ let state = {
     mode: "1",
     firmware_version: '1.0.0'
 }
+
+// Current state of device
+let state
+
+const statePublishThrottle = 1500
+let lastPublishedStateCompleted = new Date(0)
+let isPublishStatePending = false
+let pendingStatePublish
 
 /// Connect to device state /////////////////////////////////////////////////////
 
@@ -85,15 +93,17 @@ function connect(id) {
     // Connect
     mqttClient = mqtt.connect(connectionArguments(deviceId));
 
-    // Subscribe to topics
-    mqttClient.subscribe('/devices/' + deviceId + '/config', {qos: 1});
-    mqttClient.subscribe('/devices/' + deviceId + '/commands/#', {qos: 0});
-
     mqttClient.on('connect', success => {
         if (success === false) {
             console.log('MQTT client not connected');
         } else { 
             console.log('MQTT client connected')
+
+            putState(defaultState)
+
+            // Subscribe to topics
+            mqttClient.subscribe('/devices/' + deviceId + '/config', {qos: 1});
+            mqttClient.subscribe('/devices/' + deviceId + '/commands/#', {qos: 0});
         }
     });
 
@@ -113,7 +123,7 @@ function connect(id) {
             let topicState = JSON.parse(topicString)
 
             if (topic === `/devices/${deviceId}/config`) {
-                // updateStateForConfig(topicState)
+                updateStateForConfig(topicState)
             } else {
                 updateStateForCommand(topic, topicState)
             }
@@ -131,25 +141,64 @@ function getState() {
 
 // Modify device state
 function patchState(patch) {
-    let message = Object.assign(state, patch);
-    publishMessage('/devices/' + deviceId + '/state', JSON.stringify(message))
+    let message = Object.assign(patch, state);
+    putState(message)
 }
 
 // Update device state
 function putState(message) {
     publishMessage('/devices/' + deviceId + '/state', JSON.stringify(message))
+    state = message
 }
 
 // Publish a message @ topic to MQTT client
 function publishMessage(topic, message) {
-    console.log(`MQTT publishing to ${topic}: ${message}`);
+
+    console.log(`MQTT checking if publish is available for ${topic}`);
+
+
+    if (topic === '/devices/' + deviceId + '/state') {
+
+        // Check if state publish is in progress
+        if (isPublishStatePending === true) {
+            pendingStatePublish = message
+            console.log("MQTT publish in progress waiting for completion")
+            return;
+        }
+
+        // Check if state was pubished less than maxRequestRate
+        let now = new Date()
+        let nextWindow = new Date(lastPublishedStateCompleted.getTime() + statePublishThrottle)
+        if (now.getTime() < nextWindow.getTime()) {
+            
+            setTimeout(function() {
+                publishMessage(topic, message)
+            }, nextWindow.getTime() - now.getTime());
+            console.log("MQTT publish being trottled");
+            return;
+        }
+
+        isPublishStatePending = true
+    }
+
+    console.log(`MQTT attempting to publish to ${topic}: ${message}`);
 
     mqttClient.publish(topic, message, {qos: 1}, err => {
+
         if (err) {
-            console.log(err)
+            console.log(`MQTT message publish failed: ${err}`)
         } else {
-            console.log('MQTT message sent')
+            console.log('MQTT message published')
         }
+
+        lastPublishedStateCompleted = new Date()
+        isPublishStatePending = false
+
+        if (pendingStatePublish !== undefined) {
+            publishMessage('/devices/' + deviceId + '/state', pendingStatePublish)
+        }
+
+        pendingStatePublish = undefined
     });
 }
 
@@ -163,11 +212,11 @@ function updateStateForCommand(topic, message) {
         if (message.type === 'running_state') {
 
             if (message.value === 'start') {
-                state.running = true
-                putState(state)
+                let update = Object.assign(state, {running: true});
+                putState(update)
             } else if (message.value === 'stop') {
-                state.running = false
-                putState(state)
+                let update = Object.assign(state, {running: false}, );
+                putState(update)
             } else {
                 console.log(`MQTT command topic ${topic} message not properly formed. "value" value not recognized`)
             }
@@ -182,10 +231,9 @@ function updateStateForCommand(topic, message) {
 // Update state based on config messages received
 function updateStateForConfig(config) {
     if (config.mode !== undefined) {
-        state.mode = config.mode
+        let update = Object.assign(state, {mode: config.mode});
+        putState(update)
     }
-
-    putState(state)
 }
 
 /// Module exports /////////////////////////////////////////////////////
