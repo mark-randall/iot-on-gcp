@@ -9,6 +9,7 @@
 import Foundation
 import FirebaseFirestoreSwift
 
+// Represents a Thing an its current state
 struct Thing: Codable {
     
     struct State: Codable {
@@ -33,4 +34,3 @@ struct Thing: Codable {
     @DocumentID var id: String?
     let state: State
 }
-

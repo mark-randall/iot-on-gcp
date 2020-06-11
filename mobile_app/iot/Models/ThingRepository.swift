@@ -19,6 +19,8 @@ protocol ThingRepository {
     
     func fetch(forId id: String) -> AnyPublisher<Result<Thing, Error>, Never>
     
+    func fetchConfig(forId id: String) -> AnyPublisher<Result<ThingConfig, Error>, Never>
+    
     func sendCommand(forId id: String, command: ThingCommand) -> Future<Result<Bool, Error>, Never>
     
     func updateMode(forId id: String, mode: String) -> Future<Result<Bool, Error>, Never>
@@ -51,9 +53,31 @@ final class FirebaseThingRepository: ThingRepository {
         }.eraseToAnyPublisher()
     }
     
+    func fetchConfig(forId id: String) -> AnyPublisher<Result<ThingConfig, Error>, Never> {
+                
+        db.collection("device_configs").document(id)
+        .snapshotListenerPublisher()
+        .handleEvents(receiveOutput: { result in
+            print(result)
+        }).map { result in
+            
+            switch result {
+            case .failure(let error):
+                return .failure(error)
+            case .success(let snapshot):
+                do {
+                    let model = try snapshot.data(as: ThingConfig.self)! // TODO: improve error handling
+                    return .success(model)
+                } catch {
+                    return .failure(error)
+                }
+            }
+        }.eraseToAnyPublisher()
+    }
+    
     func sendCommand(forId id: String, command: ThingCommand) -> Future<Result<Bool, Error>, Never> {
         
-        return Future { [weak self] promise in
+        Future { [weak self] promise in
         
             guard let self = self else { preconditionFailure(); }
             
@@ -77,7 +101,7 @@ final class FirebaseThingRepository: ThingRepository {
     
     func updateMode(forId id: String, mode: String) -> Future<Result<Bool, Error>, Never> {
         
-        return Future { [weak self] promise in
+        Future { [weak self] promise in
         
             guard let self = self else { preconditionFailure(); }
             

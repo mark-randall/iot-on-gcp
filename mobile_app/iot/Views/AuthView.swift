@@ -16,7 +16,6 @@ struct AuthView: UIViewControllerRepresentable {
     init() {
         let authUI = FUIAuth.defaultAuthUI()
         authUI?.providers = [
-            // FUIOAuth.appleAuthProvider(),
             FUIEmailAuth()
         ]
         self.authUI = authUI

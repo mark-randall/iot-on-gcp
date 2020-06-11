@@ -19,11 +19,13 @@ struct StatusViewModelData {
         var label: String { "\(id.capitalized):" }
         let value: String
         var isEditable: Bool = false
+        var localUpdatePending: Bool = false
     }
 
     struct ActionButtonStatusData {
         
         enum Action: Equatable {
+            case loading
             case start
             case stop
             case error(NSError)
@@ -33,6 +35,7 @@ struct StatusViewModelData {
         
         var label: String {
             switch action {
+            case .loading: return "Loading"
             case .start: return "start"
             case .stop: return "stop"
             case .error: return "Error"
@@ -41,6 +44,7 @@ struct StatusViewModelData {
         
         var isEnabled: Bool {
             switch action {
+            case .loading: return false
             case .start: return true
             case .stop: return true
             case .error: return false
@@ -48,44 +52,86 @@ struct StatusViewModelData {
         }
     }
     
-    var actionButtonStatus: ActionButtonStatusData
+    enum NavBarItem: Identifiable {
+        case signIn
+        case signOut
+        
+        var id: String { label }
+        
+        var label: String {
+            switch self {
+            case .signIn: return "Sign in"
+            case .signOut: return "Sign out"
+            }
+        }
+    }
+    
+    var actionButtonStatus: ActionButtonStatusData = ActionButtonStatusData(action: .loading)
     var attributes: [StatusAttributeData] = []
+    var leftBarButtonItems: [NavBarItem] = []
 }
 
 // MARK: - ViewModel ViewEvents
 
 // Events which can be applied to ViewModel
-enum StatusViewEvent {
+enum StatusViewEvent: AnalyticsEvent {
     case onAppear
-    case actionButtonTapped
+    case actionButtonTapped(StatusViewModelData.ActionButtonStatusData)
     case attributedEditTapped(StatusViewModelData.StatusAttributeData)
     case attributeUpdated(StatusViewModelData.StatusAttributeData, newValue: String)
+    case navBarItemTapped(StatusViewModelData.NavBarItem)
+    
+    // MARK: - AnalyticEvent
+    
+    var name: String {
+        
+        switch self {
+        case .actionButtonTapped(let status):
+            return "\(status.label)".components(separatedBy: "(").first ?? "invalid"
+        case .navBarItemTapped(let item):
+            return "\(item)".components(separatedBy: "(").first ?? "invalid"
+        default:
+            return "\(self)".components(separatedBy: "(").first ?? "invalid"
+        }
+    }
+    
+    var parameters: [String : Any]? {
+        
+        switch self {
+        case .attributedEditTapped(let item):
+            return [
+                "label": item.label
+            ]
+        case .attributeUpdated(let item, let newValue):
+            return [
+                "label": item.label,
+                "value_old": item.value,
+                "value_new": newValue
+            ]
+        default:
+            return nil
+        }
+    }
 }
 
 // MARK: - ViewModel
 
-protocol StatusViewModelProtocol: ObservableObject {
-    
-    var state: StatusViewModelData? { get }
-    
-    func apply(_ eventEvent: StatusViewEvent)
-}
-
-final class StatusViewModel: StatusViewModelProtocol {
+final class StatusViewModel: ObservableObject {
 
     // MARK: - Dependencies
     
     private let thingRepository: ThingRepository
     private let userRepository: UserRepository
+    private let analyticsManager: AnalyticsManager
     
     // MARK: - State
     
     let title = "IoT"
-    @Published private(set) var state: StatusViewModelData? = nil
+    @Published private(set) var state = StatusViewModelData()
     
     @Published var sheetNavigation: ScreenData? = nil
     @Published var alert: AlertData? = nil
-    @Published var isLoading: Bool = true
+    @Published var isLoading: Bool = false
     
     // MARK: - Private state
     
@@ -96,10 +142,12 @@ final class StatusViewModel: StatusViewModelProtocol {
     
     init(
         thingRepository: ThingRepository = FirebaseThingRepository(),
-        userRepository: UserRepository = FirebaseUserRepository()
+        userRepository: UserRepository = FirebaseUserRepository(),
+        analyticsManager: AnalyticsManager = FirebaseAnalyticsManager()
     ) {
         self.thingRepository = thingRepository
         self.userRepository = userRepository
+        self.analyticsManager = analyticsManager
         
         bind(
             userRepository: userRepository,
@@ -107,6 +155,8 @@ final class StatusViewModel: StatusViewModelProtocol {
             subscriptions: &subscriptions
         )
     }
+    
+    // MARK: - Bind to model
     
     private func bind(userRepository: UserRepository, thingRepository: ThingRepository, subscriptions: inout [AnyCancellable]) {
         
@@ -117,9 +167,15 @@ final class StatusViewModel: StatusViewModelProtocol {
             userRepository.fetchAuthState(),
             $viewAppeared.filter({ $0 }).first()
         ).sink { [weak self] authState, _ in
+            
             if case .unauthenticated = authState {
                 self?.sheetNavigation = .auth
+                self?.state.leftBarButtonItems = [.signIn]
+            } else {
+                self?.state.leftBarButtonItems = [.signOut]
             }
+            
+            self?.analyticsManager.setUserProperty(UserProperty.authState(authState))
         }
         
         subscriptions.append(userRepoSubscription)
@@ -130,24 +186,44 @@ final class StatusViewModel: StatusViewModelProtocol {
         // 4. Assign to .state property
         let thingRepoSubscription = userRepository.fetchAuthState()
         .filter { $0 == .authenticated }.first()
-        .flatMap { _ in thingRepository.fetch(forId: "test") }
-        .map { result in
+        .flatMap { _ in
+            Publishers.CombineLatest(
+                thingRepository.fetch(forId: "test"),
+                thingRepository.fetchConfig(forId: "test")
+            )
+        }
+        .map { [weak self] result, configResult in
             
             switch result {
             case .failure(let error):
+                
                 return StatusViewModelData(
                     actionButtonStatus: StatusViewModelData.ActionButtonStatusData(action: .error(error as NSError)),
                     attributes: [
                         StatusViewModelData.StatusAttributeData(id: "error", value: (error as NSError).localizedDescription),
-                    ]
-               )
+                    ],
+                    leftBarButtonItems: self?.state.leftBarButtonItems ?? []
+                )
+                // TODO: handle re fetching when user signsout. This causes Firestore subscription to error out
+                
             case .success(let thing):
+                
+                // Map models to state
                 return StatusViewModelData(
                     actionButtonStatus: StatusViewModelData.ActionButtonStatusData(action: (thing.state.running) ? .stop : .start),
                     attributes: [
-                        StatusViewModelData.StatusAttributeData(id: "mode", value: thing.state.mode, isEditable: true),
-                        StatusViewModelData.StatusAttributeData(id: "battery", value: "\(thing.state.battery)")
-                    ]
+                        StatusViewModelData.StatusAttributeData(
+                            id: "mode",
+                            value: (try? configResult.get().mode) ?? thing.state.mode,
+                            isEditable: true,
+                            localUpdatePending: thing.state.mode != ((try? configResult.get().mode) ?? thing.state.mode)
+                        ),
+                        StatusViewModelData.StatusAttributeData(
+                            id: "battery",
+                            value: "\(thing.state.battery)"
+                        )
+                    ],
+                    leftBarButtonItems: [.signOut]
                 )
             }
         }
@@ -158,11 +234,21 @@ final class StatusViewModel: StatusViewModelProtocol {
         .assign(to: \.state, on: self)
         
         subscriptions.append(thingRepoSubscription)
+        
+        let errorPresentation = $alert.filter { $0 != nil }.sink(receiveValue: { [weak self] in
+            self?.analyticsManager.logEvent($0!)
+        })
+        
+        subscriptions.append(errorPresentation)
+
     }
     
     // MARK: - Handle view events
     
     func apply(_ eventEvent: StatusViewEvent) {
+        
+        if case .onAppear = eventEvent { analyticsManager.setScreeName(.statusView) }
+        analyticsManager.logEvent(eventEvent)
         
         switch eventEvent {
             
@@ -172,12 +258,11 @@ final class StatusViewModel: StatusViewModelProtocol {
         case .actionButtonTapped:
             
             // Validate internal state
-            guard let actionStatus = state?.actionButtonStatus else { assertionFailure(); return }
-            assert(actionStatus.isEnabled)
+            assert(state.actionButtonStatus.isEnabled)
             
             // Map actionStatus.action to ThingCommand
             let repositoryAction: ThingCommand?
-            switch actionStatus.action {
+            switch state.actionButtonStatus.action {
             case .start: repositoryAction = .start
             case .stop: repositoryAction = .stop
             default: repositoryAction = nil
@@ -191,8 +276,7 @@ final class StatusViewModel: StatusViewModelProtocol {
                 switch result {
                 case .failure(let error):
                     self?.alert = AlertData(error: error)
-                case .success:
-                    self?.alert = AlertData(success: "Command sent")
+                case .success: break
                 }
             })
             subscriptions.append(request)
@@ -203,7 +287,6 @@ final class StatusViewModel: StatusViewModelProtocol {
         case .attributeUpdated(let attribute, let newValue):
             
             sheetNavigation = nil
-            
             guard attribute.id == "mode" else { assertionFailure(); return }
             
             isLoading = true
@@ -213,11 +296,31 @@ final class StatusViewModel: StatusViewModelProtocol {
                 switch result {
                 case .failure(let error):
                     self?.alert = AlertData(error: error)
-                case .success:
-                    self?.alert = AlertData(success: "Config update sents")
+                case .success: break
                 }
             })
             subscriptions.append(update)
+            
+        case .navBarItemTapped(let navItem):
+            
+            switch navItem {
+                
+            case .signOut:
+                isLoading = true
+                let logout = userRepository.logout().sink(receiveValue: { [weak self] result in
+                    self?.isLoading = false
+                    
+                    switch result {
+                    case .failure(let error):
+                        self?.alert = AlertData(error: error)
+                    case .success: break
+                    }
+                })
+                subscriptions.append(logout)
+            
+            case .signIn:
+                sheetNavigation = .auth
+            }
         }
     }
 }

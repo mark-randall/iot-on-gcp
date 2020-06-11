@@ -22,6 +22,13 @@ struct StatusAttributeView: View {
             Spacer()
             if data.isEditable {
                 Button("Edit", action: editTapped)
+                .accentColor(.blue)
+            }
+            if data.localUpdatePending {
+                Button(action: {}) {
+                    Image(systemName: "info.circle")
+                }
+                .accentColor(.red)
             }
         }
     }
@@ -38,28 +45,35 @@ struct StatusView: View {
         NavigationView {
             ZStack {
                 VStack {
-                    viewModel.state.map { state in
-                        VStack {
-                            Spacer(minLength: 100)
-                            Button(action: { self.viewModel.apply(.actionButtonTapped) }) {
-                                Text(state.actionButtonStatus.label)
-                            }
-                            .disabled(!state.actionButtonStatus.isEnabled)
-                            Spacer(minLength: 100)
-                            Divider()
-                            List {
-                                ForEach(state.attributes) { attributedData in
-                                    StatusAttributeView(data: attributedData) {
-                                        self.viewModel.apply(.attributedEditTapped(attributedData))
-                                    }
+                    VStack {
+                        Spacer(minLength: 100)
+                        Button(action: { self.viewModel.apply(.actionButtonTapped(self.viewModel.state.actionButtonStatus)) }) {
+                            Text(viewModel.state.actionButtonStatus.label)
+                        }
+                        .disabled(!viewModel.state.actionButtonStatus.isEnabled)
+                        Spacer(minLength: 100)
+                        Divider()
+                        List {
+                            ForEach(viewModel.state.attributes) { attributedData in
+                                StatusAttributeView(data: attributedData) {
+                                    self.viewModel.apply(.attributedEditTapped(attributedData))
                                 }
-                           }
+                            }
                        }
                    }
                 }
                 ActivityIndicatorOverlay(isVisible: self.$viewModel.isLoading)
             }
             .navigationBarTitle(Text(viewModel.title), displayMode: .inline)
+            .navigationBarItems(trailing:
+                HStack {
+                    ForEach(viewModel.state.leftBarButtonItems) { navItem in
+                        Button(navItem.label) {
+                            self.viewModel.apply(.navBarItemTapped(navItem))
+                        }
+                    }
+                }
+            )
             .sheet(item: $viewModel.sheetNavigation) { self.navigation(for: $0) }
             .alert(item: $viewModel.alert) { self.alert(for: $0) }
         }

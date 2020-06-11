@@ -8,7 +8,7 @@
 
 import Foundation
 
-struct AlertData: Identifiable {
+struct AlertData: Identifiable, AnalyticsEvent {
     
     let id = UUID()
     var title: String?
@@ -23,4 +23,10 @@ struct AlertData: Identifiable {
     init(success: String) {
         message = success
     }
+    
+    // MARK: - AnalyticEvent
+    
+    var name: String { "error" }
+    
+    var parameters: [String : Any]? { ["message": message ]}
 }

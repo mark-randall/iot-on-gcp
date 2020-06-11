@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		022836532491C89F00D55ED5 /* ThingConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 022836522491C89F00D55ED5 /* ThingConfig.swift */; };
+		022836562491CA4F00D55ED5 /* Result+Util.swift in Sources */ = {isa = PBXBuildFile; fileRef = 022836552491CA4F00D55ED5 /* Result+Util.swift */; };
+		0228365924927BE000D55ED5 /* AnalyticsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0228365824927BE000D55ED5 /* AnalyticsManager.swift */; };
 		02409B79248EDFBF007D955F /* StatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02409B78248EDFBF007D955F /* StatusView.swift */; };
 		02409B7B248EE37A007D955F /* StatusViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02409B7A248EE37A007D955F /* StatusViewModel.swift */; };
 		02409B7D248EE9A5007D955F /* Thing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02409B7C248EE9A5007D955F /* Thing.swift */; };
@@ -48,6 +51,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		022836522491C89F00D55ED5 /* ThingConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThingConfig.swift; sourceTree = "<group>"; };
+		022836552491CA4F00D55ED5 /* Result+Util.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Result+Util.swift"; sourceTree = "<group>"; };
+		0228365824927BE000D55ED5 /* AnalyticsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsManager.swift; sourceTree = "<group>"; };
 		02409B78248EDFBF007D955F /* StatusView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StatusView.swift; sourceTree = "<group>"; };
 		02409B7A248EE37A007D955F /* StatusViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusViewModel.swift; sourceTree = "<group>"; };
 		02409B7C248EE9A5007D955F /* Thing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Thing.swift; sourceTree = "<group>"; };
@@ -106,6 +112,22 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		022836542491CA3200D55ED5 /* Swift */ = {
+			isa = PBXGroup;
+			children = (
+				022836552491CA4F00D55ED5 /* Result+Util.swift */,
+			);
+			path = Swift;
+			sourceTree = "<group>";
+		};
+		0228365724927BD100D55ED5 /* DataSource */ = {
+			isa = PBXGroup;
+			children = (
+				0228365824927BE000D55ED5 /* AnalyticsManager.swift */,
+			);
+			path = DataSource;
+			sourceTree = "<group>";
+		};
 		02409B75248EDF0B007D955F /* Views */ = {
 			isa = PBXGroup;
 			children = (
@@ -132,6 +154,7 @@
 			isa = PBXGroup;
 			children = (
 				02409B7C248EE9A5007D955F /* Thing.swift */,
+				022836522491C89F00D55ED5 /* ThingConfig.swift */,
 				02409B7E248EEA4C007D955F /* ThingRepository.swift */,
 				02409B8524902C70007D955F /* UserRepository.swift */,
 			);
@@ -141,6 +164,7 @@
 		02409B872490408D007D955F /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
+				022836542491CA3200D55ED5 /* Swift */,
 				02409B9324905B79007D955F /* Firebase */,
 			);
 			path = Extensions;
@@ -190,6 +214,7 @@
 			isa = PBXGroup;
 			children = (
 				02409B8224900C40007D955F /* iot.entitlements */,
+				0228365724927BD100D55ED5 /* DataSource */,
 				02409B77248EDF20007D955F /* Models */,
 				02409B76248EDF16007D955F /* ViewModels */,
 				02409B75248EDF0B007D955F /* Views */,
@@ -441,14 +466,17 @@
 			buildActionMask = 2147483647;
 			files = (
 				02409B8424900DDD007D955F /* AuthView.swift in Sources */,
+				022836532491C89F00D55ED5 /* ThingConfig.swift in Sources */,
 				02409B7B248EE37A007D955F /* StatusViewModel.swift in Sources */,
 				02409B992491698F007D955F /* SelectView.swift in Sources */,
+				022836562491CA4F00D55ED5 /* Result+Util.swift in Sources */,
 				02409B7D248EE9A5007D955F /* Thing.swift in Sources */,
 				02AAFA3C248EDA920017981A /* AppDelegate.swift in Sources */,
 				02409B9524913660007D955F /* AlertData.swift in Sources */,
 				02409B8B249040C6007D955F /* QuerySnapshot+Debug.swift in Sources */,
 				02AAFA3E248EDA920017981A /* SceneDelegate.swift in Sources */,
 				02409B7F248EEA4C007D955F /* ThingRepository.swift in Sources */,
+				0228365924927BE000D55ED5 /* AnalyticsManager.swift in Sources */,
 				02409B8624902C70007D955F /* UserRepository.swift in Sources */,
 				02409B79248EDFBF007D955F /* StatusView.swift in Sources */,
 				02409B8A249040C6007D955F /* Firestore+Combine.swift in Sources */,

@@ -18,6 +18,8 @@ enum AuthState {
 protocol UserRepository {
     
     func fetchAuthState() -> AnyPublisher<AuthState, Never>
+    
+    func logout() -> Future<Result<Bool, Error>, Never>
 }
 
 final class FirebaseUserRepository: UserRepository {
@@ -32,5 +34,17 @@ final class FirebaseUserRepository: UserRepository {
     
     func fetchAuthState() -> AnyPublisher<AuthState, Never> {
         $authState.eraseToAnyPublisher()
+    }
+    
+    func logout() -> Future<Result<Bool, Error>, Never> {
+        
+        Future { promise in
+            do {
+                try Auth.auth().signOut()
+                promise(.success(.success(true)))
+            } catch {
+                promise(.success(.failure(error)))
+            }
+        }
     }
 }
