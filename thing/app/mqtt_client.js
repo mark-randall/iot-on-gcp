@@ -156,7 +156,6 @@ function publishMessage(topic, message) {
 
     console.log(`MQTT checking if publish is available for ${topic}`);
 
-
     if (topic === '/devices/' + deviceId + '/state') {
 
         // Check if state publish is in progress
@@ -174,7 +173,7 @@ function publishMessage(topic, message) {
             setTimeout(function() {
                 publishMessage(topic, message)
             }, nextWindow.getTime() - now.getTime());
-            console.log("MQTT publish being trottled");
+            console.log("MQTT publish being throttled");
             return;
         }
 
