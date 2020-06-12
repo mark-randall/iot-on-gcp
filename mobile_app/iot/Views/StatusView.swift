@@ -52,11 +52,23 @@ struct StatusView: View {
                         }
                         .disabled(!viewModel.state.actionButtonStatus.isEnabled)
                         Spacer(minLength: 100)
-                        Divider()
                         List {
-                            ForEach(viewModel.state.attributes) { attributedData in
-                                StatusAttributeView(data: attributedData) {
-                                    self.viewModel.apply(.attributedEditTapped(attributedData))
+                            Section(header: Text("Status")) {
+                                ForEach(viewModel.state.attributes) { attributedData in
+                                    StatusAttributeView(data: attributedData) {
+                                        self.viewModel.apply(.attributedEditTapped(attributedData))
+                                    }
+                                }
+                            }
+                            Section(header: Text("Schedule")) {
+                                ForEach(viewModel.state.scheduledRunTimes) { scheduled in
+                                    Text(scheduled.time)
+                                }
+                                Button(action: { self.viewModel.apply(.addScheduledRunTimeButtonTapped) }) {
+                                    HStack {
+                                        Image(systemName: "plus")
+                                        Text("Schedule to run")
+                                    }
                                 }
                             }
                        }
@@ -94,9 +106,15 @@ struct StatusView: View {
         case .auth:
             return AnyView(AuthView())
         case .editAttribute(let attribute, let options):
-            return AnyView(SelectView(title: attribute.label, options: options, value: attribute.value) {
-                self.viewModel.apply(.attributeUpdated(attribute, newValue: $0))
-            })
+            return AnyView(
+                SelectView(title: attribute.label, options: options, value: attribute.value) {
+                    self.viewModel.apply(.attributeUpdated(attribute, newValue: $0))
+                }
+            )
+        case .scheduleRunTime:
+            return AnyView(
+                ScheduleRunTimeView(selected: { (date) in self.viewModel.apply(.scheduleRunTimeSelected(date)) }, cancelled: { self.viewModel.apply(.dismissSheet) })
+            )
         }
     }
     

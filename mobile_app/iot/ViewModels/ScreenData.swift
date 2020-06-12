@@ -16,5 +16,7 @@ enum ScreenData: Identifiable {
     
     case editAttribute(StatusViewModelData.StatusAttributeData, [String])
     
+    case scheduleRunTime
+    
     var id: String { "\(self)" }
 }

@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		02008AE22493FDA100DE7803 /* ScheduleRunTimeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02008AE12493FDA100DE7803 /* ScheduleRunTimeView.swift */; };
+		02008AE4249408AA00DE7803 /* ThingSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02008AE3249408AA00DE7803 /* ThingSchedule.swift */; };
 		022836532491C89F00D55ED5 /* ThingConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 022836522491C89F00D55ED5 /* ThingConfig.swift */; };
 		022836562491CA4F00D55ED5 /* Result+Util.swift in Sources */ = {isa = PBXBuildFile; fileRef = 022836552491CA4F00D55ED5 /* Result+Util.swift */; };
 		0228365924927BE000D55ED5 /* AnalyticsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0228365824927BE000D55ED5 /* AnalyticsManager.swift */; };
@@ -51,6 +53,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		02008AE12493FDA100DE7803 /* ScheduleRunTimeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleRunTimeView.swift; sourceTree = "<group>"; };
+		02008AE3249408AA00DE7803 /* ThingSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThingSchedule.swift; sourceTree = "<group>"; };
 		022836522491C89F00D55ED5 /* ThingConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThingConfig.swift; sourceTree = "<group>"; };
 		022836552491CA4F00D55ED5 /* Result+Util.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Result+Util.swift"; sourceTree = "<group>"; };
 		0228365824927BE000D55ED5 /* AnalyticsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsManager.swift; sourceTree = "<group>"; };
@@ -136,6 +140,7 @@
 				02409B982491698F007D955F /* SelectView.swift */,
 				02409B8324900DDD007D955F /* AuthView.swift */,
 				02409B9624913EEE007D955F /* ActivityIndicator.swift */,
+				02008AE12493FDA100DE7803 /* ScheduleRunTimeView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -154,6 +159,7 @@
 			isa = PBXGroup;
 			children = (
 				02409B7C248EE9A5007D955F /* Thing.swift */,
+				02008AE3249408AA00DE7803 /* ThingSchedule.swift */,
 				022836522491C89F00D55ED5 /* ThingConfig.swift */,
 				02409B7E248EEA4C007D955F /* ThingRepository.swift */,
 				02409B8524902C70007D955F /* UserRepository.swift */,
@@ -465,6 +471,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				02008AE22493FDA100DE7803 /* ScheduleRunTimeView.swift in Sources */,
 				02409B8424900DDD007D955F /* AuthView.swift in Sources */,
 				022836532491C89F00D55ED5 /* ThingConfig.swift in Sources */,
 				02409B7B248EE37A007D955F /* StatusViewModel.swift in Sources */,
@@ -475,6 +482,7 @@
 				02409B9524913660007D955F /* AlertData.swift in Sources */,
 				02409B8B249040C6007D955F /* QuerySnapshot+Debug.swift in Sources */,
 				02AAFA3E248EDA920017981A /* SceneDelegate.swift in Sources */,
+				02008AE4249408AA00DE7803 /* ThingSchedule.swift in Sources */,
 				02409B7F248EEA4C007D955F /* ThingRepository.swift in Sources */,
 				0228365924927BE000D55ED5 /* AnalyticsManager.swift in Sources */,
 				02409B8624902C70007D955F /* UserRepository.swift in Sources */,

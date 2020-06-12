@@ -52,6 +52,11 @@ struct StatusViewModelData {
         }
     }
     
+    struct ScheduledRunTimesData: Identifiable {
+        var id: String { time }
+        let time: String
+    }
+    
     enum NavBarItem: Identifiable {
         case signIn
         case signOut
@@ -68,7 +73,9 @@ struct StatusViewModelData {
     
     var actionButtonStatus: ActionButtonStatusData = ActionButtonStatusData(action: .loading)
     var attributes: [StatusAttributeData] = []
+    var scheduledRunTimes: [ScheduledRunTimesData] = []
     var leftBarButtonItems: [NavBarItem] = []
+    
 }
 
 // MARK: - ViewModel ViewEvents
@@ -80,6 +87,9 @@ enum StatusViewEvent: AnalyticsEvent {
     case attributedEditTapped(StatusViewModelData.StatusAttributeData)
     case attributeUpdated(StatusViewModelData.StatusAttributeData, newValue: String)
     case navBarItemTapped(StatusViewModelData.NavBarItem)
+    case addScheduledRunTimeButtonTapped
+    case scheduleRunTimeSelected(Date)
+    case dismissSheet
     
     // MARK: - AnalyticEvent
     
@@ -135,16 +145,20 @@ final class StatusViewModel: ObservableObject {
     
     // MARK: - Private state
     
+    let deviceId: String
+    
     @Published private var viewAppeared = false
     private var subscriptions: [AnyCancellable] = []
     
     // MARK: - Init
     
     init(
+        deviceId: String = "test",
         thingRepository: ThingRepository = FirebaseThingRepository(),
         userRepository: UserRepository = FirebaseUserRepository(),
         analyticsManager: AnalyticsManager = FirebaseAnalyticsManager()
     ) {
+        self.deviceId = deviceId
         self.thingRepository = thingRepository
         self.userRepository = userRepository
         self.analyticsManager = analyticsManager
@@ -159,6 +173,8 @@ final class StatusViewModel: ObservableObject {
     // MARK: - Bind to model
     
     private func bind(userRepository: UserRepository, thingRepository: ThingRepository, subscriptions: inout [AnyCancellable]) {
+        
+        let deviceId = self.deviceId
         
         // 1. Validate $viewAppeared
         // 2. Fetch auth state
@@ -182,18 +198,25 @@ final class StatusViewModel: ObservableObject {
         
         // 1. Validate user is authenticated
         // 2. Fetch state for thing with id
-        // 3. Map model state to viewModel state
+        // 2a. Fetch device config
+        // 2b. Fetch device schedule
+        // 3. Map models state to viewModel state
         // 4. Assign to .state property
         let thingRepoSubscription = userRepository.fetchAuthState()
         .filter { $0 == .authenticated }.first()
         .flatMap { _ in
-            Publishers.CombineLatest(
-                thingRepository.fetch(forId: "test"),
-                thingRepository.fetchConfig(forId: "test")
+            thingRepository.fetch(forId: deviceId)
+            .combineLatest(
+                thingRepository.fetchConfig(forId: deviceId),
+                thingRepository.fetchSchedule(forId: deviceId)
             )
         }
-        .map { [weak self] result, configResult in
+        .map { [weak self] results in
             
+            let result = results.0
+            let configResult = results.1
+            let scheduleResult = results.2
+
             switch result {
             case .failure(let error):
                 
@@ -223,6 +246,9 @@ final class StatusViewModel: ObservableObject {
                             value: "\(thing.state.battery)"
                         )
                     ],
+                    scheduledRunTimes: (((try? scheduleResult.get()) ?? [ThingSchedule]()).map { scheduled in
+                        StatusViewModelData.ScheduledRunTimesData(time: "\(scheduled.time)")
+                    }),
                     leftBarButtonItems: [.signOut]
                 )
             }
@@ -240,7 +266,6 @@ final class StatusViewModel: ObservableObject {
         })
         
         subscriptions.append(errorPresentation)
-
     }
     
     // MARK: - Handle view events
@@ -270,7 +295,7 @@ final class StatusViewModel: ObservableObject {
             guard let thingAction = repositoryAction else { assertionFailure(); return }
             
             isLoading = true
-            let request = thingRepository.sendCommand(forId: "test", command: thingAction).sink(receiveValue: { [weak self] result in
+            let request = thingRepository.sendCommand(forId: deviceId, command: thingAction).sink(receiveValue: { [weak self] result in
                 self?.isLoading = false
                 
                 switch result {
@@ -290,7 +315,7 @@ final class StatusViewModel: ObservableObject {
             guard attribute.id == "mode" else { assertionFailure(); return }
             
             isLoading = true
-            let update = thingRepository.updateMode(forId: "test", mode: newValue).sink(receiveValue: { [weak self] result in
+            let update = thingRepository.updateConfig(forId: deviceId, config: ThingConfigUpdate(mode: newValue)).sink(receiveValue: { [weak self] result in
                 self?.isLoading = false
                 
                 switch result {
@@ -321,6 +346,26 @@ final class StatusViewModel: ObservableObject {
             case .signIn:
                 sheetNavigation = .auth
             }
+            
+        case .addScheduledRunTimeButtonTapped:
+            sheetNavigation = .scheduleRunTime
+            
+        case .scheduleRunTimeSelected(let date):
+            sheetNavigation = nil
+            isLoading = true
+            let schedule = thingRepository.createSchedule(forId: deviceId, schedule: ScheduleCreaton(time: date)).sink(receiveValue: { [weak self] result in
+                self?.isLoading = false
+                
+                switch result {
+                case .failure(let error):
+                    self?.alert = AlertData(error: error)
+                case .success: break
+                }
+            })
+            subscriptions.append(schedule)
+            
+        case .dismissSheet:
+            sheetNavigation = nil
         }
     }
 }

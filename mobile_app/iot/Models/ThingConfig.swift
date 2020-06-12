@@ -6,9 +6,6 @@
 //  Copyright © 2020 Mark Randall. All rights reserved.
 //
 
-import Foundation
-
-import Foundation
 import FirebaseFirestoreSwift
 
 // Represents the current config of a thing
