@@ -71,9 +71,6 @@ exports.createHandler = async function(snapshot, context, serviceLocator) {
             return false
         });
     } 
-
-    // Update BigQuery?
-    // TODO
 };
 
 exports.deleteHandler = async function(snapshot, context, serviceLocator) {

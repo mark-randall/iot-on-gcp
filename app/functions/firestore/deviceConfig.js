@@ -27,8 +27,5 @@ exports.writeHandler = async function(change, context, serviceLocator) {
             name: name,
             binaryData: binaryData
         });
-    } 
-
-    // Update BigQuery?
-    // TODO
+    }
 };
