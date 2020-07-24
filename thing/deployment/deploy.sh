@@ -20,5 +20,5 @@ create_device_infastructure()
     # Use GCP Deployment Manager to create infastructure for project
     gcloud deployment-manager deployments create $DEPLOYMENT_NAME \
        --template robot_deployment_template.jinja \
-       --properties zone:us-central1-a,startup-script-url:$STARTUP_SCRIPT_URL
+       --properties zone:us-central1-a,startup-script-url:$STARTUP_SCRIPT_URL,test-device-name:$DEPLOYMENT_NAME
 }

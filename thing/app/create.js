@@ -13,10 +13,12 @@ exec('../scripts/create_keys.sh', (error, stdout, stderr) => {
         console.log(`stderr: ${stderr}`);
         return;
     }
-    console.log(stdout)
+    console.log(stdout);
+
+    const deviceName = (process.env.TEST_DEVICE_NAME !== undefined) ? process.env.TEST_DEVICE_NAME : 'unknown soldier';
 
     // Create device with IoT Core
-    let deviceId = "test" // TODO: update to use an env. var
+    let deviceId = deviceName
     deviceManagerClient.create(deviceId).then(() => {
 
         // Connect to device

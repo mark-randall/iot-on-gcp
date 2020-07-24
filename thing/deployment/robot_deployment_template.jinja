@@ -22,6 +22,8 @@ resources:
       items:
       - key: startup-script-url
         value: {{ properties["startup-script-url"] }}
+      - key: test-device-name
+        value: {{ properties["test-device-name"] }}
     disks:
     - deviceName: boot
       type: PERSISTENT
