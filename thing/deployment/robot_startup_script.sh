@@ -29,14 +29,14 @@ cd IoT_on_GCP/thing/app
 npm install
 
 # Fetch device name from Compute Engine meta data
-export TEST_DEVICE_NAME=$(curl "http://metadata/computeMetadata/v1/instance/attributes/test-device-name" -H "Metadata-Flavor: Google")
+export TEST_DEVICE_NAME=curl "http://metadata/computeMetadata/v1/instance/attributes/test-device-name" -H "Metadata-Flavor: Google"
 
 # Create cert
 # Create device with IoT Core
 sudo npm run create
 
 # Start API and Test device
-npm run start
+sudo npm run start
 
 
 
