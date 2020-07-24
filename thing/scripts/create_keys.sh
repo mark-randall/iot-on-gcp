@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Used by app/create.js
 FILE=rsa_cert.pem
 if [ -f "$FILE" ]; then
     echo "$FILE exists"

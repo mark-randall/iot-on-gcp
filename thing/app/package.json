@@ -2,6 +2,7 @@
   "name": "iot-robot",
   "description": "Fake iOT device",
   "scripts": {
+    "create": "node create.js",
     "lint": "eslint .",
     "start": "node index.js"
   },
